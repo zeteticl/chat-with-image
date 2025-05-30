@@ -1,0 +1,36 @@
+# First uninstall existing torch packages
+# pip uninstall torch torchvision torchaudio
+
+# Core dependencies
+--find-links https://download.pytorch.org/whl/cu128
+torch>=2.7.0+cu128
+torchvision>=0.22.0+cu128
+torchaudio>=2.7.0+cu128
+transformers[torch]>=4.37.2
+numpy>=1.24.0
+scipy>=1.11.0
+requests>=2.31.0
+sounddevice>=0.4.6
+openai>=1.12.0
+flask>=3.0.0
+Pillow>=10.0.0
+websocket-client>=1.6.0
+
+# Audio processing
+soundfile>=0.12.1
+ctranslate2>=3.24.0
+faster-whisper>=0.10.0
+ffmpeg-python>=0.2.0
+moviepy>=1.0.3
+
+# Web server
+flask-cors>=4.0.0
+
+# Image processing
+Pillow>=10.0.0
+
+# Progress bars and utilities
+tqdm>=4.66.1
+
+# Optional but recommended
+python-dotenv>=1.0.0  # For environment variable management 
