@@ -64,18 +64,16 @@ def get_lm_studio_instance(config):
                 model = lms.llm(config['model_name'])
                 _lm_studio_instance = model
                 _last_connection_time = current_time
-                logger.info(f"成功連接到LM Studio (嘗試 {attempt + 1}/{config['max_retries']})")
+                logger.info(f"已連接到LM Studio (嘗試 {attempt + 1}/{config['max_retries']})")
                 return _lm_studio_instance
             except Exception as e:
-                logger.error(f"連接失敗 (嘗試 {attempt + 1}/{config['max_retries']}): {str(e)}")
                 if attempt < config['max_retries'] - 1:
-                    wait_time = config['retry_delay'] * (attempt + 1)  # 指數退避
-                    logger.info(f"等待 {wait_time} 秒後重試...")
+                    wait_time = config['retry_delay'] * (attempt + 1)
+                    logger.info(f"連接失敗，{wait_time}秒後重試...")
                     time.sleep(wait_time)
-                    # 在重試前重置實例
                     reset_lm_studio_instance()
                 else:
-                    logger.error("達到最大重試次數，無法建立連接")
+                    logger.error("無法建立連接")
                     return None
     
     return _lm_studio_instance
@@ -89,7 +87,7 @@ def generate_prompt(content, prompt_template, config):
                 raise Exception("LM Studio模型未初始化")
 
             # 設置超時時間（秒）
-            timeout = config.get('timeout', 30)  # 默認30秒超時
+            timeout = config.get('timeout', 30)
             
             # 使用線程來執行生成任務
             import threading
@@ -114,10 +112,9 @@ def generate_prompt(content, prompt_template, config):
             thread.join(timeout)
             
             if thread.is_alive():
-                # 如果線程還在運行，說明超時了
-                logger.error(f"生成提示詞超時 (超過 {timeout} 秒)")
+                logger.error(f"生成提示詞超時 ({timeout}秒)")
                 reset_lm_studio_instance()
-                raise Exception(f"生成提示詞超時 (超過 {timeout} 秒)")
+                raise Exception(f"生成提示詞超時 ({timeout}秒)")
             
             # 檢查是否有錯誤
             if not error_queue.empty():
@@ -128,24 +125,18 @@ def generate_prompt(content, prompt_template, config):
                 raise Exception("生成提示詞失敗：未獲得結果")
                 
             result = result_queue.get()
-            
-            # 生成完成後重置實例
             reset_lm_studio_instance()
-            
             return result
             
         except Exception as e:
-            logger.error(f"生成提示詞失敗 (嘗試 {attempt + 1}/{config['max_retries']}): {str(e)}")
-            # 如果是連接錯誤，重置實例
-            if "ECONNRESET" in str(e) or "connection" in str(e).lower() or "already created" in str(e).lower():
-                reset_lm_studio_instance()
-            
             if attempt < config['max_retries'] - 1:
-                wait_time = config['retry_delay'] * (attempt + 1)  # 指數退避
-                logger.info(f"等待 {wait_time} 秒後重試...")
+                wait_time = config['retry_delay'] * (attempt + 1)
+                logger.info(f"生成失敗，{wait_time}秒後重試...")
                 time.sleep(wait_time)
+                if "ECONNRESET" in str(e) or "connection" in str(e).lower():
+                    reset_lm_studio_instance()
             else:
-                raise Exception("達到最大重試次數，無法生成提示詞")
+                raise Exception("無法生成提示詞")
 
 def save_prompt(prompt_text, output_dir):
     """保存生成的提示詞"""

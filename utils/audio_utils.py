@@ -163,7 +163,8 @@ def save_audio(recording, sample_rate, output_dir):
 
 def list_audio_devices():
     """列出所有可用的音頻設備"""
-    logger.info("\n可用的音頻設備:")
+    logger.info("可用的音頻設備:")
     devices = sd.query_devices()
     for i, device in enumerate(devices):
-        logger.info(f"設備 {i}: {device['name']} (輸入通道: {device['max_input_channels']}, 輸出通道: {device['max_output_channels']}, 採樣率: {device['default_samplerate']}Hz)") 
+        if device['max_input_channels'] > 0:  # 只顯示有輸入通道的設備
+            logger.info(f"設備 {i}: {device['name']}") 

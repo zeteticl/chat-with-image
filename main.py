@@ -28,6 +28,11 @@ def setup_logging():
         ]
     )
     
+    # 設置其他模塊的日誌級別
+    logging.getLogger('websocket').setLevel(logging.WARNING)
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+    logging.getLogger('PIL').setLevel(logging.WARNING)
+    
     # 禁用其他模塊的日誌配置
     for module in ['utils.audio_utils', 'utils.whisper_utils', 'utils.lm_studio_utils', 'utils.comfyui_utils']:
         module_logger = logging.getLogger(module)

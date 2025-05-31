@@ -13,12 +13,11 @@ def load_whisper_model(config):
     try:
         logger.info(f"正在載入Whisper模型 {config['model_name']}...")
         
-        # 記錄CUDA信息
-        if torch.cuda.is_available():
-            logger.info(f"CUDA版本: {torch.version.cuda}")
-            logger.info(f"cuDNN版本: {torch.backends.cudnn.version()}")
-            logger.info(f"GPU設備: {torch.cuda.get_device_name(0)}")
-            logger.info(f"GPU內存: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+        # 只在首次載入時記錄GPU信息
+        if not hasattr(load_whisper_model, '_gpu_info_logged'):
+            if torch.cuda.is_available():
+                logger.info(f"使用GPU: {torch.cuda.get_device_name(0)}")
+            load_whisper_model._gpu_info_logged = True
         
         # 初始化Whisper模型
         model = WhisperModel(
@@ -36,8 +35,7 @@ def load_whisper_model(config):
         return model
         
     except Exception as e:
-        logger.error(f"無法載入Whisper模型 '{config['model_name']}': {e}")
-        logger.error("請確保模型路徑正確且模型文件可訪問")
+        logger.error(f"無法載入Whisper模型: {e}")
         return None
 
 def transcribe_audio(audio_path, config):
