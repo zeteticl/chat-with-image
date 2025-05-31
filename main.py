@@ -7,6 +7,9 @@ from utils.whisper_utils import transcribe_audio, save_transcription
 from utils.lm_studio_utils import generate_prompt, save_prompt, reset_lm_studio_instance
 from utils.comfyui_utils import ComfyUI
 import time
+import signal
+from contextlib import contextmanager
+import threading
 
 # 配置日誌
 logging.basicConfig(
@@ -43,10 +46,22 @@ def process_audio_to_image():
         )
         logger.info(f"音頻已保存: {audio_file}")
         
-        # 3. 轉錄音頻
-        transcription = transcribe_audio(audio_file, config.WHISPER_CONFIG)
-        if not transcription:
-            raise Exception("音頻轉錄失敗")
+        # 3. 轉錄音頻（添加超時機制）
+        @contextmanager
+        def timeout(seconds):
+            def handler(signum, frame):
+                raise TimeoutError(f"操作超時（{seconds}秒）")
+            
+            # 設置信號處理器
+            original_handler = signal.signal(signal.SIGALRM, handler)
+            signal.alarm(seconds)
+            try:
+                transcription = transcribe_audio(audio_file, config.WHISPER_CONFIG)
+                if not transcription:
+                    raise Exception("音頻轉錄失敗")
+            except TimeoutError as e:
+                logger.error(f"轉錄超時: {str(e)}")
+                raise Exception("轉錄過程超時，請檢查音頻文件或重試")
         
         # 4. 保存轉錄文本
         transcription_file = save_transcription(

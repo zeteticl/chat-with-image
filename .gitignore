@@ -4,3 +4,4 @@
 /__pycache__
 *.log
 /output
+/utils/__pycache__

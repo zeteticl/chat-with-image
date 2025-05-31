@@ -3,7 +3,7 @@ import uuid
 
 # 音頻設置
 AUDIO_CONFIG = {
-    'duration': 60,        # 錄音時長（秒）
+    'duration': 10,        # 錄音時長（秒）
     'channels': 2,         # 聲道數（1=單聲道，2=立體聲）
     'sample_rate': 16000,  # 採樣率（Hz）
     'device_id': None      # 音頻設備ID（None=自動選擇）
@@ -45,7 +45,7 @@ OUTPUT_CONFIG = {
 
 # 故事背景設置（用戶可自定義）
 STORY_BACKGROUND = """
-日式恐怖，你們收到好友發出的緊急求救訊息：「快來救我！」，博物館卻目睹了不可名狀的異象
+日式恐怖
 """
 
 # 提示詞模板（用戶可自定義）
