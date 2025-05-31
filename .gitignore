@@ -1,3 +1,6 @@
 /.venv
 /whisper-large-v3-cantonese-ct2
 /whisper-large-v3-cantonese
+/__pycache__
+*.log
+/output

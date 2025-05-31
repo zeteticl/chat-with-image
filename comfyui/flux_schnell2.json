@@ -1,0 +1,215 @@
+{
+  "6": {
+    "inputs": {
+      "text": "Subject: A weary and grizzled adventurer, a female half-elf rogue named Lyra, examining a complex, glowing schematic of a hidden temple entrance overlaid on a bustling Hong Kong street scene.\nStyle: Detailed digital painting with elements of cyberpunk and gritty realism.\nComposition: Medium shot focusing on Lyra's face and the schematic, with the chaotic Hong Kong street background blurred in the distance. The schematic is prominently displayed, partially overlapping the buildings.\nLighting: Dramatic lighting from neon signs reflecting off wet pavement, casting long shadows and highlighting Lyra’s determined expression.\nColor Palette: Predominantly dark blues, purples, and grays with pops of vibrant neon pink and green from the Hong Kong street scene.\nMood/Atmosphere: Intense, suspenseful, and slightly melancholic – reflecting Lyra's exhaustion and the dangerous nature of her quest.\nTechnical Details: 8k resolution, cinematic perspective, shallow depth of field to blur the background, emphasizing Lyra’s face.\nAdditional Elements: Rain-slicked Hong Kong street with crowded stalls, neon signs in Cantonese, a partially visible rickshaw, and subtle holographic projections flickering around the scene.",
+      "clip": [
+        "30",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "31",
+        0
+      ],
+      "vae": [
+        "30",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "27": {
+    "inputs": {
+      "width": 512,
+      "height": 512,
+      "batch_size": 1
+    },
+    "class_type": "EmptySD3LatentImage",
+    "_meta": {
+      "title": "EmptySD3LatentImage"
+    }
+  },
+  "30": {
+    "inputs": {
+      "ckpt_name": "flux1-schnell-fp8.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "31": {
+    "inputs": {
+      "seed": 687896417625354,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "30",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "33",
+        0
+      ],
+      "latent_image": [
+        "27",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "33": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "30",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "38": {
+    "inputs": {
+      "ckpt_name": "flux1-schnell-fp8.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "39": {
+    "inputs": {
+      "ckpt_name": "flux1-schnell-fp8.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "40": {
+    "inputs": {
+      "ckpt_name": "FLUX Schnell (Quantized).safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "41": {
+    "inputs": {
+      "ckpt_name": "FLUX Dev (Quantized).safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "42": {
+    "inputs": {
+      "ckpt_name": "flux1-schnell-fp8.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "43": {
+    "inputs": {
+      "ckpt_name": "flux1-schnell-fp8.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "44": {
+    "inputs": {
+      "ckpt_name": "FLUX Schnell (Quantized).safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "45": {
+    "inputs": {
+      "ckpt_name": "FLUX Schnell (Quantized).safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "46": {
+    "inputs": {
+      "ckpt_name": "FLUX Schnell (Quantized).safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "47": {
+    "inputs": {
+      "ckpt_name": "FLUX Schnell (Quantized).safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "48": {
+    "inputs": {
+      "ckpt_name": "FLUX Schnell (Quantized).safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "49": {
+    "inputs": {
+      "ckpt_name": "flux1-schnell-fp8.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  }
+}

@@ -3,7 +3,7 @@ import uuid
 
 # 音頻設置
 AUDIO_CONFIG = {
-    'duration': 10,        # 錄音時長（秒）
+    'duration': 60,        # 錄音時長（秒）
     'channels': 2,         # 聲道數（1=單聲道，2=立體聲）
     'sample_rate': 16000,  # 採樣率（Hz）
     'device_id': None      # 音頻設備ID（None=自動選擇）
