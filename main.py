@@ -47,21 +47,24 @@ def process_audio_to_image():
         logger.info(f"音頻已保存: {audio_file}")
         
         # 3. 轉錄音頻（添加超時機制）
-        @contextmanager
-        def timeout(seconds):
-            def handler(signum, frame):
-                raise TimeoutError(f"操作超時（{seconds}秒）")
-            
-            # 設置信號處理器
-            original_handler = signal.signal(signal.SIGALRM, handler)
-            signal.alarm(seconds)
-            try:
-                transcription = transcribe_audio(audio_file, config.WHISPER_CONFIG)
-                if not transcription:
-                    raise Exception("音頻轉錄失敗")
-            except TimeoutError as e:
-                logger.error(f"轉錄超時: {str(e)}")
-                raise Exception("轉錄過程超時，請檢查音頻文件或重試")
+        transcription = None
+        timeout_occurred = False
+
+        def timeout_handler():
+            nonlocal timeout_occurred
+            timeout_occurred = True
+
+        timer = threading.Timer(300, timeout_handler)  # 5分鐘超時
+        timer.start()
+
+        try:
+            transcription = transcribe_audio(audio_file, config.WHISPER_CONFIG)
+            if timeout_occurred:
+                raise TimeoutError("轉錄過程超時")
+            if not transcription:
+                raise Exception("音頻轉錄失敗")
+        finally:
+            timer.cancel()
         
         # 4. 保存轉錄文本
         transcription_file = save_transcription(
