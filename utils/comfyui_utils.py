@@ -7,15 +7,6 @@ import urllib.parse
 import logging
 from datetime import datetime
 
-# 配置日誌
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('comfyui.log', encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
 logger = logging.getLogger(__name__)
 
 class ComfyUI:
@@ -60,6 +51,7 @@ class ComfyUI:
         """追蹤生成進度"""
         node_ids = list(prompt.keys())
         finished_nodes = []
+        last_progress = 0
 
         while True:
             out = self.ws.recv()
@@ -68,19 +60,26 @@ class ComfyUI:
                 if message['type'] == 'progress':
                     data = message['data']
                     current_step = data['value']
-                    logger.info(f'K-Sampler進度 -> 步驟: {current_step}/{data["max"]}')
+                    print(f'K-Sampler進度 -> 步驟: {current_step}/{data["max"]}', end='\r', flush=True)
                 if message['type'] == 'execution_cached':
                     data = message['data']
                     for itm in data['nodes']:
                         if itm not in finished_nodes:
                             finished_nodes.append(itm)
-                            logger.info(f'進度: {len(finished_nodes)}/{len(node_ids)} 任務完成')
+                            progress = len(finished_nodes)
+                            if progress != last_progress:
+                                print(f'進度: {progress}/{len(node_ids)} 任務完成', end='\r', flush=True)
+                                last_progress = progress
                 if message['type'] == 'executing':
                     data = message['data']
                     if data['node'] not in finished_nodes:
                         finished_nodes.append(data['node'])
-                        logger.info(f'進度: {len(finished_nodes)}/{len(node_ids)} 任務完成')
+                        progress = len(finished_nodes)
+                        if progress != last_progress:
+                            print(f'進度: {progress}/{len(node_ids)} 任務完成', end='\r', flush=True)
+                            last_progress = progress
                     if data['node'] is None and data['prompt_id'] == prompt_id:
+                        print()  # 換行
                         break
             else:
                 continue

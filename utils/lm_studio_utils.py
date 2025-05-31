@@ -4,15 +4,6 @@ import time
 import os
 from datetime import datetime
 
-# 配置日誌
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('lm_studio.log', encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
 logger = logging.getLogger(__name__)
 
 # 全局變量用於存儲LM Studio實例

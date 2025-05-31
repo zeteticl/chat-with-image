@@ -2,6 +2,8 @@
 /whisper-large-v3-cantonese-ct2
 /whisper-large-v3-cantonese
 /__pycache__
+/logs
 *.log
 /output
+/utils/__pycache__
 /utils/__pycache__

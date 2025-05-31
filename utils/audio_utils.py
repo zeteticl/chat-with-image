@@ -6,15 +6,6 @@ from datetime import datetime
 import queue
 import logging
 
-# 配置日誌
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('audio.log', encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
 logger = logging.getLogger(__name__)
 
 __all__ = ['monitor_audio', 'save_audio', 'get_device_info', 'find_stereo_mix_device', 'list_audio_devices']
@@ -23,11 +14,7 @@ def get_device_info(device_id):
     """獲取音頻設備信息"""
     try:
         device_info = sd.query_devices(device_id)
-        logger.info(f"\n設備信息:")
-        logger.info(f"名稱: {device_info['name']}")
-        logger.info(f"輸入通道數: {device_info['max_input_channels']}")
-        logger.info(f"輸出通道數: {device_info['max_output_channels']}")
-        logger.info(f"默認採樣率: {device_info['default_samplerate']}")
+        logger.info(f"設備信息: ID:{device_id} {device_info['name']} (輸入通道: {device_info['max_input_channels']}, 輸出通道: {device_info['max_output_channels']}, 採樣率: {device_info['default_samplerate']}Hz)")
         return device_info
     except Exception as e:
         logger.error(f"獲取設備信息時出錯: {str(e)}")
@@ -74,11 +61,7 @@ def monitor_audio(config):
         
         logger.info("\n找不到立體聲混音設備，請選擇其他輸入設備:")
         for i, device in input_devices:
-            logger.info(f"\n設備 {i}:")
-            logger.info(f"名稱: {device['name']}")
-            logger.info(f"輸入通道數: {device['max_input_channels']}")
-            logger.info(f"輸出通道數: {device['max_output_channels']}")
-            logger.info(f"默認採樣率: {device['default_samplerate']}")
+            logger.info(f"設備 {i}: {device['name']} (輸入通道: {device['max_input_channels']}, 輸出通道: {device['max_output_channels']}, 採樣率: {device['default_samplerate']}Hz)")
         
         while True:
             try:
@@ -91,7 +74,7 @@ def monitor_audio(config):
                 logger.warning("請輸入有效的數字")
     else:
         device_id = stereo_mix_id
-        logger.info(f"\n找到立體聲混音設備: {devices[device_id]['name']}")
+        logger.info(f"找到立體聲混音設備: ID:{device_id} {devices[device_id]['name']}")
 
     # 獲取設備信息
     device_info = get_device_info(device_id)
@@ -103,10 +86,7 @@ def monitor_audio(config):
     channels = config['channels']
     duration = config['duration']
 
-    logger.info(f"\n開始監聽 {duration} 秒的音頻...")
-    logger.info(f"使用設備: {device_info['name']}")
-    logger.info(f"採樣率: {sample_rate}Hz")
-    logger.info(f"通道數: {channels}")
+    logger.info(f"開始監聽 {duration} 秒的音頻... 使用設備: ID:{device_id} {device_info['name']} (採樣率: {sample_rate}Hz, 通道數: {channels})")
 
     # 創建隊列來存儲音頻數據
     q = queue.Queue()
@@ -186,8 +166,4 @@ def list_audio_devices():
     logger.info("\n可用的音頻設備:")
     devices = sd.query_devices()
     for i, device in enumerate(devices):
-        logger.info(f"\n設備 {i}:")
-        logger.info(f"名稱: {device['name']}")
-        logger.info(f"輸入通道數: {device['max_input_channels']}")
-        logger.info(f"輸出通道數: {device['max_output_channels']}")
-        logger.info(f"默認採樣率: {device['default_samplerate']}") 
+        logger.info(f"設備 {i}: {device['name']} (輸入通道: {device['max_input_channels']}, 輸出通道: {device['max_output_channels']}, 採樣率: {device['default_samplerate']}Hz)") 

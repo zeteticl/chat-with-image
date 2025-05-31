@@ -2,7 +2,7 @@ import os
 import logging
 from datetime import datetime
 import config
-from utils.audio_utils import monitor_audio, save_audio
+from utils.audio_utils import monitor_audio, save_audio, list_audio_devices
 from utils.whisper_utils import transcribe_audio, save_transcription
 from utils.lm_studio_utils import generate_prompt, save_prompt, reset_lm_studio_instance
 from utils.comfyui_utils import ComfyUI
@@ -12,14 +12,30 @@ from contextlib import contextmanager
 import threading
 
 # 配置日誌
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('main.log', encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
+def setup_logging():
+    """設置統一的日誌配置"""
+    # 創建日誌目錄
+    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    
+    # 配置根日誌記錄器
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(os.path.join(log_dir, 'app.log'), encoding='utf-8'),
+            logging.StreamHandler()
+        ]
+    )
+    
+    # 禁用其他模塊的日誌配置
+    for module in ['utils.audio_utils', 'utils.whisper_utils', 'utils.lm_studio_utils', 'utils.comfyui_utils']:
+        module_logger = logging.getLogger(module)
+        module_logger.propagate = True
+        module_logger.handlers = []
+
+# 設置日誌
+setup_logging()
 logger = logging.getLogger(__name__)
 
 def setup_directories():
@@ -132,6 +148,10 @@ def process_audio_to_image():
 def main():
     """主程序入口"""
     try:
+        # 顯示所有音頻輸入設備
+        list_audio_devices()
+        logger.info("=== 設備列表結束 ===\n")
+        
         # 設置目錄
         setup_directories()
         
