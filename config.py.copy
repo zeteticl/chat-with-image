@@ -1,6 +1,13 @@
 import os
 import uuid
 
+# File deletion settings
+FILE_DELETION_CONFIG = {
+    'delete_audio_after_transcription': False,  # Delete audio files after transcription
+    'delete_text_after_prompt': False,         # Delete text files after prompt generation
+    'delete_prompt_after_image': False         # Delete prompt files after image generation
+}
+
 # Audio settings
 AUDIO_CONFIG = {
     'duration': 180,        # Recording duration (seconds)
