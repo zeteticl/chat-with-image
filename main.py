@@ -10,6 +10,8 @@ import time
 import signal
 from contextlib import contextmanager
 import threading
+from queue import Queue
+import concurrent.futures
 
 # 配置日誌
 def setup_logging():
@@ -52,21 +54,9 @@ def setup_directories():
         os.makedirs(full_path, exist_ok=True)
         logger.info(f"已創建目錄: {full_path}")
 
-def process_audio_to_image():
+def process_audio_to_image(audio_file):
     """處理從音頻到圖片的完整流程"""
     try:
-        # 1. 監聽音頻
-        logger.info("開始監聽音頻...")
-        recording, sample_rate = monitor_audio(config.AUDIO_CONFIG)
-        
-        # 2. 保存音頻文件
-        audio_file = save_audio(
-            recording, 
-            sample_rate, 
-            os.path.join(config.OUTPUT_CONFIG['base_dir'], config.OUTPUT_CONFIG['audio_dir'])
-        )
-        logger.info(f"音頻已保存: {audio_file}")
-        
         # 3. 轉錄音頻（添加超時機制）
         transcription = None
         timeout_occurred = False
@@ -180,63 +170,95 @@ def process_audio_to_image():
         logger.error(f"處理過程中出錯: {str(e)}")
         raise
 
-def main():
-    """主程序入口"""
-    while True:  # 添加無限循環
+def audio_recording_worker(task_queue):
+    """音頻錄製工作線程"""
+    while True:
         try:
-            # 顯示所有音頻輸入設備
-            list_audio_devices()
-            logger.info("=== 設備列表結束 ===\n")
+            # 1. 監聽音頻
+            logger.info("開始監聽音頻...")
+            recording, sample_rate = monitor_audio(config.AUDIO_CONFIG)
             
-            # 設置目錄
-            setup_directories()
+            # 2. 保存音頻文件
+            audio_file = save_audio(
+                recording, 
+                sample_rate, 
+                os.path.join(config.OUTPUT_CONFIG['base_dir'], config.OUTPUT_CONFIG['audio_dir'])
+            )
+            logger.info(f"音頻已保存: {audio_file}")
             
-            logger.info("程式已啟動，開始循環處理音頻到圖片的轉換...")
-            logger.info("按 Ctrl+C 可以停止程式")
-            
-            consecutive_errors = 0
-            max_consecutive_errors = 3
-            
-            while True:
-                try:
-                    # 執行主流程
-                    results = process_audio_to_image()
-                    
-                    # 重置連續錯誤計數
-                    consecutive_errors = 0
-                    
-                    # 輸出結果摘要
-                    logger.info("\n=== 處理完成 ===")
-                    logger.info(f"音頻文件: {results['audio_file']}")
-                    logger.info(f"轉錄文本: {results['transcription_file']}")
-                    logger.info(f"提示詞文件: {results['prompt_file']}")
-                    logger.info(f"生成圖片: {results['image_file']}")
-                    
-                    # 添加短暫延遲，避免CPU使用率過高
-                    time.sleep(1)
-                    
-                except KeyboardInterrupt:
-                    logger.info("\n使用者中斷程式執行")
-                    return  # 使用 return 而不是 break，這樣可以完全退出程式
-                except Exception as e:
-                    consecutive_errors += 1
-                    logger.error(f"處理過程中出錯: {str(e)}")
-                    
-                    if consecutive_errors >= max_consecutive_errors:
-                        logger.error(f"連續錯誤次數達到 {max_consecutive_errors} 次，重置 LM Studio 連接...")
-                        reset_lm_studio_instance()
-                        consecutive_errors = 0
-                    
-                    wait_time = 5 * consecutive_errors  # 指數退避
-                    logger.info(f"等待 {wait_time} 秒後重試...")
-                    time.sleep(wait_time)
-                    continue
+            # 將任務加入隊列
+            task_queue.put(audio_file)
             
         except Exception as e:
-            logger.error(f"程式執行失敗: {str(e)}")
-            logger.info("程式將在 5 秒後自動重啟...")
-            time.sleep(5)  # 等待 5 秒後重啟
-            continue  # 繼續外層循環，重新啟動程式
+            logger.error(f"錄音過程出錯: {str(e)}")
+            time.sleep(1)  # 短暫等待後繼續
+
+def image_generation_worker(task_queue):
+    """圖片生成工作線程"""
+    while True:
+        try:
+            # 從隊列獲取任務
+            audio_file = task_queue.get()
+            if audio_file is None:
+                break
+                
+            # 處理音頻到圖片的轉換
+            results = process_audio_to_image(audio_file)
+            
+            # 輸出結果摘要
+            logger.info("\n=== 處理完成 ===")
+            logger.info(f"音頻文件: {results['audio_file']}")
+            logger.info(f"轉錄文本: {results['transcription_file']}")
+            logger.info(f"提示詞文件: {results['prompt_file']}")
+            logger.info(f"生成圖片: {results['image_file']}")
+            
+            task_queue.task_done()
+            
+        except Exception as e:
+            logger.error(f"圖片生成過程出錯: {str(e)}")
+            task_queue.task_done()
+
+def main():
+    """主程序入口"""
+    try:
+        # 顯示所有音頻輸入設備
+        list_audio_devices()
+        logger.info("=== 設備列表結束 ===\n")
+        
+        # 設置目錄
+        setup_directories()
+        
+        logger.info("程式已啟動，開始並行處理音頻到圖片的轉換...")
+        logger.info("按 Ctrl+C 可以停止程式")
+        
+        # 創建任務隊列
+        task_queue = Queue()
+        
+        # 創建並啟動工作線程
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            # 啟動音頻錄製線程
+            audio_future = executor.submit(audio_recording_worker, task_queue)
+            
+            # 啟動圖片生成線程
+            image_future = executor.submit(image_generation_worker, task_queue)
+            
+            try:
+                # 等待線程完成
+                audio_future.result()
+                image_future.result()
+            except KeyboardInterrupt:
+                logger.info("\n使用者中斷程式執行")
+                # 清空隊列並添加結束標記
+                while not task_queue.empty():
+                    task_queue.get()
+                task_queue.put(None)
+                return
+            
+    except Exception as e:
+        logger.error(f"程式執行失敗: {str(e)}")
+        logger.info("程式將在 5 秒後自動重啟...")
+        time.sleep(5)
+        main()  # 重新啟動主程式
 
 if __name__ == "__main__":
     try:
