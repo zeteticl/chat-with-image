@@ -114,14 +114,6 @@ def process_audio_to_image(audio_file):
             os.path.join(config.OUTPUT_CONFIG['base_dir'], config.OUTPUT_CONFIG['text_dir'])
         )
         logger.info(f"Transcription text saved: {transcription_file}")
-
-        # Delete audio file if configured
-        if config.FILE_DELETION_CONFIG['delete_audio_after_transcription']:
-            try:
-                os.remove(audio_file)
-                logger.info(f"Deleted audio file: {audio_file}")
-            except Exception as e:
-                logger.warning(f"Failed to delete audio file: {str(e)}")
         
         # 5. Generate image prompt
         max_prompt_attempts = 3
@@ -153,14 +145,6 @@ def process_audio_to_image(audio_file):
             os.path.join(config.OUTPUT_CONFIG['base_dir'], config.OUTPUT_CONFIG['text_dir'])
         )
         logger.info(f"Prompt saved: {prompt_file}")
-
-        # Delete transcription file if configured
-        if config.FILE_DELETION_CONFIG['delete_text_after_prompt']:
-            try:
-                os.remove(transcription_file)
-                logger.info(f"Deleted transcription file: {transcription_file}")
-            except Exception as e:
-                logger.warning(f"Failed to delete transcription file: {str(e)}")
         
         # 7. Generate image
         comfy = ComfyUI(config.COMFYUI_CONFIG)
@@ -173,15 +157,6 @@ def process_audio_to_image(audio_file):
         
         if image_path:
             logger.info(f"Image generated successfully: {image_path}")
-
-            # Delete prompt file if configured
-            if config.FILE_DELETION_CONFIG['delete_prompt_after_image']:
-                try:
-                    os.remove(prompt_file)
-                    logger.info(f"Deleted prompt file: {prompt_file}")
-                except Exception as e:
-                    logger.warning(f"Failed to delete prompt file: {str(e)}")
-
             return {
                 'audio_file': audio_file,
                 'transcription_file': transcription_file,
