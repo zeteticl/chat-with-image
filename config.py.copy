@@ -1,54 +1,54 @@
 import os
 import uuid
 
-# Audio settings
+# 音頻設置
 AUDIO_CONFIG = {
-    'duration': 180,        # Recording duration (seconds)
-    'channels': 2,         # Number of channels (1=mono, 2=stereo)
-    'sample_rate': 16000,  # Sample rate (Hz)
-    'device_id': None      # Audio device ID (None=auto select)
+    'duration': 180,        # 錄音時長（秒）
+    'channels': 2,         # 聲道數（1=單聲道，2=立體聲）
+    'sample_rate': 16000,  # 採樣率（Hz）
+    'device_id': None      # 音頻設備ID（None=自動選擇）
 }
 
-# Whisper model settings
+# Whisper 模型設置
 WHISPER_CONFIG = {
-    'model_name': "whisper-large-v3-cantonese-ct2",  # Whisper model name
-    'model_dir': os.path.join(os.path.dirname(os.path.abspath(__file__)), "models"),  # Model directory
-    'language': "zh",      # Recognition language
-    'task': "transcribe"   # Task type
+    'model_name': "whisper-large-v3-cantonese-ct2",  # Whisper模型名稱
+    'model_dir': os.path.join(os.path.dirname(os.path.abspath(__file__)), "models"),  # 模型存放目錄
+    'language': "zh",      # 識別語言
+    'task': "transcribe"   # 任務類型
 }
 
-# LM Studio settings
+# LM Studio 設置
 LM_STUDIO_CONFIG = {
-    'base_url': "localhost:12353",  # LM Studio API address
-    'api_key': "not-needed",                   # API key (usually not needed for local)
-    'model_name': "google/gemma-3-4b",      # Model name
-    'max_retries': 3,                          # Maximum retry attempts
-    'retry_delay': 2                           # Retry delay (seconds)
+    'base_url': "localhost:12353",  # LM Studio API地址
+    'api_key': "not-needed",                   # API密鑰（本地通常不需要）
+    'model_name': "google/gemma-3-4b",      # 模型名稱
+    'max_retries': 3,                          # 最大重試次數
+    'retry_delay': 2                           # 重試間隔（秒）
 }
 
-# ComfyUI settings
+# ComfyUI 設置
 COMFYUI_CONFIG = {
-    'server_address': "127.0.0.1:8188",        # ComfyUI server address
-    'client_id': str(uuid.uuid4()),            # Client ID
-    'workflow_path': "comfyui/flux_schnell2.json",      # Workflow file path
-    'prompt_node_id': "6",                     # Prompt node ID
-    'clip_input_name': "clip"                  # CLIP model input name
+    'server_address': "127.0.0.1:8188",        # ComfyUI服務器地址
+    'client_id': str(uuid.uuid4()),            # 客戶端ID
+    'workflow_path': "comfyui/flux_schnell2.json",      # 工作流程文件路徑
+    'prompt_node_id': "6",                     # 提示詞節點ID
+    'clip_input_name': "clip"                  # CLIP模型輸入名稱
 }
 
-# Output directory settings
+# 輸出目錄設置
 OUTPUT_CONFIG = {
-    'base_dir': os.path.join(os.path.dirname(os.path.abspath(__file__)), "output"),  # Output root directory
-    'audio_dir': "audio",      # Audio files directory
-    'text_dir': "text",        # Text files directory
-    'image_dir': "images"      # Image files directory
+    'base_dir': os.path.join(os.path.dirname(os.path.abspath(__file__)), "output"),  # 輸出根目錄
+    'audio_dir': "audio",      # 音頻文件目錄
+    'text_dir': "text",        # 文本文件目錄
+    'image_dir': "images"      # 圖片文件目錄
 }
 
-# Story background settings (user customizable)
+# 故事背景設置（用戶可自定義）
 STORY_BACKGROUND = """
-Horror story
+恐怖故事
 """
 
-# Prompt template (user customizable)
+# 提示詞模板（用戶可自定義）
 PROMPT_TEMPLATE = """Based on the following TRPG game content, generate a prompt for ComfyUI Flux Schnell image generation.
 Requirements:
 0. Must in Japanese Horror Anime Style
