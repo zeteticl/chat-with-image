@@ -9,17 +9,17 @@ logger = logging.getLogger(__name__)
 __all__ = ['transcribe_audio', 'save_transcription', 'load_whisper_model']
 
 def load_whisper_model(config):
-    """載入Whisper模型"""
+    """Load Whisper model"""
     try:
-        logger.info(f"正在載入Whisper模型 {config['model_name']}...")
+        logger.info(f"Loading Whisper model {config['model_name']}...")
         
-        # 只在首次載入時記錄GPU信息
+        # Only log GPU info on first load
         if not hasattr(load_whisper_model, '_gpu_info_logged'):
             if torch.cuda.is_available():
-                logger.info(f"使用GPU: {torch.cuda.get_device_name(0)}")
+                logger.info(f"Using GPU: {torch.cuda.get_device_name(0)}")
             load_whisper_model._gpu_info_logged = True
         
-        # 初始化Whisper模型
+        # Initialize Whisper model
         model = WhisperModel(
             config['model_name'],
             device="cuda" if torch.cuda.is_available() else "cpu",
@@ -31,23 +31,23 @@ def load_whisper_model(config):
             local_files_only=False
         )
         
-        logger.info("Whisper模型載入成功")
+        logger.info("Whisper model loaded successfully")
         return model
         
     except Exception as e:
-        logger.error(f"無法載入Whisper模型: {e}")
+        logger.error(f"Unable to load Whisper model: {e}")
         return None
 
 def transcribe_audio(audio_path, config):
-    """使用Whisper轉錄音頻"""
-    logger.info("開始轉錄音頻...")
+    """Transcribe audio using Whisper"""
+    logger.info("Starting audio transcription...")
     model = load_whisper_model(config)
     if not model:
-        logger.error("錯誤：無法載入Whisper模型")
+        logger.error("Error: Unable to load Whisper model")
         return None
     
     try:
-        # 使用優化參數進行轉錄
+        # Transcribe with optimized parameters
         result = model.transcribe(
             audio_path,
             language=config['language'],
@@ -70,7 +70,7 @@ def transcribe_audio(audio_path, config):
             max_new_tokens=128
         )
         
-        # 處理不同類型的返回結果
+        # Handle different types of return results
         if hasattr(result, 'text'):
             return result.text.strip()
         elif isinstance(result, tuple) and len(result) > 0:
@@ -78,21 +78,21 @@ def transcribe_audio(audio_path, config):
             if segments:
                 return " ".join(segment.text for segment in segments).strip()
             else:
-                logger.warning("沒有檢測到任何語音片段")
+                logger.warning("No speech segments detected")
                 return ""
         elif isinstance(result, dict):
             text = result.get('text', '')
             return text.strip() if text else ""
         else:
-            logger.warning(f"未知的轉錄結果格式: {type(result)}")
+            logger.warning(f"Unknown transcription result format: {type(result)}")
             return str(result).strip()
             
     except Exception as e:
-        logger.error(f"轉錄音頻時出錯: {e}")
+        logger.error(f"Error during audio transcription: {e}")
         return None
 
 def save_transcription(text, audio_filename, output_dir):
-    """保存轉錄文本"""
+    """Save transcription text"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     os.makedirs(output_dir, exist_ok=True)
     
@@ -100,12 +100,12 @@ def save_transcription(text, audio_filename, output_dir):
     
     try:
         with open(filename, 'w', encoding='utf-8') as f:
-            f.write(f"原始音頻文件: {os.path.basename(audio_filename)}\n")
-            f.write(f"轉錄時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write("\n轉錄內容:\n")
+            f.write(f"Original audio file: {os.path.basename(audio_filename)}\n")
+            f.write(f"Transcription time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write("\nTranscription content:\n")
             f.write(text)
         
-        logger.info(f"轉錄文本已保存至: {filename}")
+        logger.info(f"Transcription text saved to: {filename}")
         return filename
     except Exception as e:
-        raise Exception(f"保存轉錄文本時出錯: {str(e)}") 
+        raise Exception(f"Error saving transcription text: {str(e)}") 

@@ -11,160 +11,160 @@ logger = logging.getLogger(__name__)
 __all__ = ['monitor_audio', 'save_audio', 'get_device_info', 'find_stereo_mix_device', 'list_audio_devices']
 
 def get_device_info(device_id):
-    """獲取音頻設備信息"""
+    """Get audio device information"""
     try:
         device_info = sd.query_devices(device_id)
-        logger.info(f"設備信息: ID:{device_id} {device_info['name']} (輸入通道: {device_info['max_input_channels']}, 輸出通道: {device_info['max_output_channels']}, 採樣率: {device_info['default_samplerate']}Hz)")
+        logger.info(f"Device info: ID:{device_id} {device_info['name']} (Input channels: {device_info['max_input_channels']}, Output channels: {device_info['max_output_channels']}, Sample rate: {device_info['default_samplerate']}Hz)")
         return device_info
     except Exception as e:
-        logger.error(f"獲取設備信息時出錯: {str(e)}")
+        logger.error(f"Error getting device info: {str(e)}")
         return None
 
 def find_stereo_mix_device():
-    """查找立體聲混音設備"""
+    """Find stereo mix device"""
     devices = sd.query_devices()
     for i, device in enumerate(devices):
-        # 檢查設備名稱中是否包含關鍵字
+        # Check if device name contains keywords
         if any(keyword in device['name'].lower() for keyword in ['stereo mix', '立體聲混音', 'what u hear', 'what you hear']) and device['max_input_channels'] > 0:
-            # 驗證設備是否可用
+            # Verify if device is available
             try:
                 sd.check_input_settings(device=i)
                 return i
             except Exception as e:
-                logger.warning(f"設備 {device['name']} 不可用: {str(e)}")
+                logger.warning(f"Device {device['name']} is not available: {str(e)}")
                 continue
     return None
 
 def monitor_audio(config):
-    """監聽音頻輸出"""
-    # 獲取所有設備
+    """Monitor audio output"""
+    # Get all devices
     devices = sd.query_devices()
     
-    # 首先嘗試找到立體聲混音設備
+    # First try to find stereo mix device
     stereo_mix_id = find_stereo_mix_device()
     
     if stereo_mix_id is None:
-        # 如果找不到立體聲混音，則顯示所有輸入設備供選擇
+        # If stereo mix is not found, display all input devices for selection
         input_devices = []
         for i, device in enumerate(devices):
             if device['max_input_channels'] > 0:
                 try:
-                    # 驗證設備是否可用
+                    # Verify if device is available
                     sd.check_input_settings(device=i)
                     input_devices.append((i, device))
                 except Exception as e:
-                    logger.warning(f"設備 {device['name']} 不可用: {str(e)}")
+                    logger.warning(f"Device {device['name']} is not available: {str(e)}")
                     continue
         
         if not input_devices:
-            raise Exception("找不到任何可用的音頻輸入設備")
+            raise Exception("No available audio input devices found")
         
-        logger.info("\n找不到立體聲混音設備，請選擇其他輸入設備:")
+        logger.info("\nStereo mix device not found, please select another input device:")
         for i, device in input_devices:
-            logger.info(f"設備 {i}: {device['name']} (輸入通道: {device['max_input_channels']}, 輸出通道: {device['max_output_channels']}, 採樣率: {device['default_samplerate']}Hz)")
+            logger.info(f"Device {i}: {device['name']} (Input channels: {device['max_input_channels']}, Output channels: {device['max_output_channels']}, Sample rate: {device['default_samplerate']}Hz)")
         
         while True:
             try:
-                device_id = int(input("\n請選擇設備ID (輸入數字): "))
+                device_id = int(input("\nPlease select device ID (enter number): "))
                 if any(i == device_id for i, _ in input_devices):
                     break
                 else:
-                    logger.warning("無效的設備ID，請重新選擇")
+                    logger.warning("Invalid device ID, please select again")
             except ValueError:
-                logger.warning("請輸入有效的數字")
+                logger.warning("Please enter a valid number")
     else:
         device_id = stereo_mix_id
-        logger.info(f"找到立體聲混音設備: ID:{device_id} {devices[device_id]['name']}")
+        logger.info(f"Found stereo mix device: ID:{device_id} {devices[device_id]['name']}")
 
-    # 獲取設備信息
+    # Get device information
     device_info = get_device_info(device_id)
     if not device_info:
-        raise Exception("無法獲取設備信息")
+        raise Exception("Unable to get device information")
 
-    # 使用設備的默認採樣率
+    # Use device's default sample rate
     sample_rate = int(device_info['default_samplerate'])
     channels = config['channels']
     duration = config['duration']
 
-    logger.info(f"開始監聽 {duration} 秒的音頻... 使用設備: ID:{device_id} {device_info['name']} (採樣率: {sample_rate}Hz, 通道數: {channels})")
+    logger.info(f"Starting audio monitoring for {duration} seconds... Using device: ID:{device_id} {device_info['name']} (Sample rate: {sample_rate}Hz, Channels: {channels})")
 
-    # 創建隊列來存儲音頻數據
+    # Create queue to store audio data
     q = queue.Queue()
     recording = []
 
     def audio_callback(indata, frames, time, status):
-        """音頻回調函數"""
+        """Audio callback function"""
         if status:
-            logger.warning(f"狀態: {status}")
+            logger.warning(f"Status: {status}")
         q.put(indata.copy())
 
     try:
-        # 驗證設備設置
+        # Verify device settings
         sd.check_input_settings(
             device=device_id,
             channels=channels,
             samplerate=sample_rate
         )
         
-        # 創建輸入流
+        # Create input stream
         with sd.InputStream(
             device=device_id,
             channels=channels,
             samplerate=sample_rate,
             callback=audio_callback
         ):
-            logger.info("開始監聽...")
-            # 等待指定的時間
+            logger.info("Starting monitoring...")
+            # Wait for specified duration
             sd.sleep(int(duration * 1000))
-            logger.info("監聽完成！")
+            logger.info("Monitoring complete!")
 
-        # 從隊列中獲取所有數據
+        # Get all data from queue
         while not q.empty():
             recording.append(q.get())
 
-        # 將數據轉換為numpy數組
+        # Convert data to numpy array
         if recording:
             recording = np.concatenate(recording, axis=0)
             return recording, sample_rate
         else:
-            raise Exception("沒有捕獲到音頻數據")
+            raise Exception("No audio data captured")
 
     except Exception as e:
-        raise Exception(f"監聽音頻時出錯: {str(e)}")
+        raise Exception(f"Error monitoring audio: {str(e)}")
 
 def save_audio(recording, sample_rate, output_dir):
-    """保存音頻為WAV文件"""
+    """Save audio as WAV file"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     os.makedirs(output_dir, exist_ok=True)
     
     filename = os.path.join(output_dir, f"recording_{timestamp}.wav")
     
-    # 將float32轉換為int16
+    # Convert float32 to int16
     audio_data = (recording * 32767).astype(np.int16)
     
     try:
         with wave.open(filename, 'wb') as wf:
-            # 設置WAV文件參數
+            # Set WAV file parameters
             wf.setparams((
-                recording.shape[1] if len(recording.shape) > 1 else 1,  # 通道數
-                2,  # 樣本寬度（字節）
-                sample_rate,  # 採樣率
-                len(audio_data),  # 幀數
-                'NONE',  # 壓縮類型
-                'NONE'  # 壓縮名稱
+                recording.shape[1] if len(recording.shape) > 1 else 1,  # Number of channels
+                2,  # Sample width (bytes)
+                sample_rate,  # Sample rate
+                len(audio_data),  # Number of frames
+                'NONE',  # Compression type
+                'NONE'  # Compression name
             ))
-            # 寫入音頻數據
+            # Write audio data
             wf.writeframes(audio_data.tobytes())
         
-        logger.info(f"音頻已保存至: {filename}")
+        logger.info(f"Audio saved to: {filename}")
         return filename
     except Exception as e:
-        raise Exception(f"保存音頻文件時出錯: {str(e)}")
+        raise Exception(f"Error saving audio file: {str(e)}")
 
 def list_audio_devices():
-    """列出所有可用的音頻設備"""
-    logger.info("可用的音頻設備:")
+    """List all available audio devices"""
+    logger.info("Available audio devices:")
     devices = sd.query_devices()
     for i, device in enumerate(devices):
-        if device['max_input_channels'] > 0:  # 只顯示有輸入通道的設備
-            logger.info(f"設備 {i}: {device['name']}") 
+        if device['max_input_channels'] > 0:  # Only show devices with input channels
+            logger.info(f"Device {i}: {device['name']}") 

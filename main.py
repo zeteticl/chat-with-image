@@ -13,14 +13,14 @@ import threading
 from queue import Queue
 import concurrent.futures
 
-# 配置日誌
+# Configure logging
 def setup_logging():
-    """設置統一的日誌配置"""
-    # 創建日誌目錄
+    """Set up unified logging configuration"""
+    # Create log directory
     log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
     os.makedirs(log_dir, exist_ok=True)
     
-    # 配置根日誌記錄器
+    # Configure root logger
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
@@ -30,34 +30,34 @@ def setup_logging():
         ]
     )
     
-    # 設置其他模塊的日誌級別
+    # Set log levels for other modules
     logging.getLogger('websocket').setLevel(logging.WARNING)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
     logging.getLogger('PIL').setLevel(logging.WARNING)
     
-    # 禁用其他模塊的日誌配置
+    # Disable logging configuration for other modules
     for module in ['utils.audio_utils', 'utils.whisper_utils', 'utils.lm_studio_utils', 'utils.comfyui_utils']:
         module_logger = logging.getLogger(module)
         module_logger.propagate = True
         module_logger.handlers = []
 
-# 設置日誌
+# Set up logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
 def setup_directories():
-    """設置必要的目錄"""
+    """Set up necessary directories"""
     for dir_name in [config.OUTPUT_CONFIG['audio_dir'], 
                     config.OUTPUT_CONFIG['text_dir'], 
                     config.OUTPUT_CONFIG['image_dir']]:
         full_path = os.path.join(config.OUTPUT_CONFIG['base_dir'], dir_name)
         os.makedirs(full_path, exist_ok=True)
-        logger.info(f"已創建目錄: {full_path}")
+        logger.info(f"Created directory: {full_path}")
 
 def process_audio_to_image(audio_file):
-    """處理從音頻到圖片的完整流程"""
+    """Process the complete flow from audio to image"""
     try:
-        # 3. 轉錄音頻（添加超時機制）
+        # 3. Transcribe audio (add timeout mechanism)
         transcription = None
         timeout_occurred = False
         max_retries = 3
@@ -66,7 +66,7 @@ def process_audio_to_image(audio_file):
         def timeout_handler():
             nonlocal timeout_occurred
             timeout_occurred = True
-            logger.warning("轉錄過程超時，準備重試")
+            logger.warning("Transcription process timed out, preparing to retry")
 
         while retry_count < max_retries:
             timeout_occurred = False
@@ -74,79 +74,79 @@ def process_audio_to_image(audio_file):
             timer.start()
 
             try:
-                logger.info(f"開始執行音頻轉錄... (嘗試 {retry_count + 1}/{max_retries})")
+                logger.info(f"Starting audio transcription... (Attempt {retry_count + 1}/{max_retries})")
                 transcription = transcribe_audio(audio_file, config.WHISPER_CONFIG)
                 
                 if timeout_occurred:
-                    raise TimeoutError("轉錄過程超時（超過 120 秒）")
+                    raise TimeoutError("Transcription process timed out (exceeded 120 seconds)")
                     
                 if not transcription:
-                    raise Exception("音頻轉錄失敗：未獲得轉錄結果")
+                    raise Exception("Audio transcription failed: No transcription result")
                     
-                logger.info("音頻轉錄完成")
-                break  # 成功完成，跳出重試循環
+                logger.info("Audio transcription completed")
+                break  # Successfully completed, exit retry loop
                 
             except TimeoutError as te:
-                logger.error(f"轉錄超時錯誤: {str(te)}")
+                logger.error(f"Transcription timeout error: {str(te)}")
                 retry_count += 1
                 if retry_count < max_retries:
-                    wait_time = 5 * retry_count  # 指數退避
-                    logger.info(f"等待 {wait_time} 秒後進行第 {retry_count + 1} 次重試...")
+                    wait_time = 5 * retry_count  # Exponential backoff
+                    logger.info(f"Waiting {wait_time} seconds before retry {retry_count + 1}...")
                     time.sleep(wait_time)
                 else:
-                    logger.error("已達到最大重試次數，轉錄失敗")
-                    raise Exception("音頻轉錄失敗：超過最大重試次數")
+                    logger.error("Maximum retry count reached, transcription failed")
+                    raise Exception("Audio transcription failed: Exceeded maximum retry count")
             except Exception as e:
-                logger.error(f"轉錄過程發生錯誤: {str(e)}")
+                logger.error(f"Error during transcription process: {str(e)}")
                 raise
             finally:
                 timer.cancel()
                 if timeout_occurred:
-                    logger.warning(f"第 {retry_count + 1} 次轉錄嘗試已被強制終止")
+                    logger.warning(f"Transcription attempt {retry_count + 1} was forcibly terminated")
 
         if not transcription:
-            raise Exception("音頻轉錄失敗：所有重試均未成功")
+            raise Exception("Audio transcription failed: All retries unsuccessful")
         
-        # 4. 保存轉錄文本
+        # 4. Save transcription text
         transcription_file = save_transcription(
             transcription,
             audio_file,
             os.path.join(config.OUTPUT_CONFIG['base_dir'], config.OUTPUT_CONFIG['text_dir'])
         )
-        logger.info(f"轉錄文本已保存: {transcription_file}")
+        logger.info(f"Transcription text saved: {transcription_file}")
         
-        # 5. 生成圖片提示詞
+        # 5. Generate image prompt
         max_prompt_attempts = 3
         prompt = None
         
         for attempt in range(max_prompt_attempts):
             try:
-                # 組合故事背景和轉錄文本
+                # Combine story background and transcription text
                 content = f"{config.STORY_BACKGROUND}\n\n{transcription}"
                 prompt = generate_prompt(content, config.PROMPT_TEMPLATE, config.LM_STUDIO_CONFIG)
                 break
             except Exception as e:
-                logger.error(f"生成提示詞失敗 (嘗試 {attempt + 1}/{max_prompt_attempts}): {str(e)}")
+                logger.error(f"Failed to generate prompt (Attempt {attempt + 1}/{max_prompt_attempts}): {str(e)}")
                 if attempt < max_prompt_attempts - 1:
-                    wait_time = 5 * (attempt + 1)  # 指數退避
-                    logger.info(f"等待 {wait_time} 秒後重試...")
+                    wait_time = 5 * (attempt + 1)  # Exponential backoff
+                    logger.info(f"Waiting {wait_time} seconds before retry...")
                     time.sleep(wait_time)
-                    # 重置 LM Studio 實例
+                    # Reset LM Studio instance
                     reset_lm_studio_instance()
                 else:
-                    raise Exception("無法生成提示詞，已達到最大重試次數")
+                    raise Exception("Unable to generate prompt, maximum retry count reached")
         
         if not prompt:
-            raise Exception("無法生成提示詞")
+            raise Exception("Unable to generate prompt")
         
-        # 6. 保存提示詞
+        # 6. Save prompt
         prompt_file = save_prompt(
             prompt,
             os.path.join(config.OUTPUT_CONFIG['base_dir'], config.OUTPUT_CONFIG['text_dir'])
         )
-        logger.info(f"提示詞已保存: {prompt_file}")
+        logger.info(f"Prompt saved: {prompt_file}")
         
-        # 7. 生成圖片
+        # 7. Generate image
         comfy = ComfyUI(config.COMFYUI_CONFIG)
         image_path = comfy.generate_image(
             config.COMFYUI_CONFIG['workflow_path'],
@@ -156,7 +156,7 @@ def process_audio_to_image(audio_file):
         )
         
         if image_path:
-            logger.info(f"圖片生成成功: {image_path}")
+            logger.info(f"Image generated successfully: {image_path}")
             return {
                 'audio_file': audio_file,
                 'transcription_file': transcription_file,
@@ -164,109 +164,109 @@ def process_audio_to_image(audio_file):
                 'image_file': image_path
             }
         else:
-            raise Exception("圖片生成失敗")
+            raise Exception("Image generation failed")
             
     except Exception as e:
-        logger.error(f"處理過程中出錯: {str(e)}")
+        logger.error(f"Error during processing: {str(e)}")
         raise
 
 def audio_recording_worker(task_queue):
-    """音頻錄製工作線程"""
+    """Audio recording worker thread"""
     while True:
         try:
-            # 1. 監聽音頻
-            logger.info("開始監聽音頻...")
+            # 1. Monitor audio
+            logger.info("Starting audio monitoring...")
             recording, sample_rate = monitor_audio(config.AUDIO_CONFIG)
             
-            # 2. 保存音頻文件
+            # 2. Save audio file
             audio_file = save_audio(
                 recording, 
                 sample_rate, 
                 os.path.join(config.OUTPUT_CONFIG['base_dir'], config.OUTPUT_CONFIG['audio_dir'])
             )
-            logger.info(f"音頻已保存: {audio_file}")
+            logger.info(f"Audio saved: {audio_file}")
             
-            # 將任務加入隊列
+            # Add task to queue
             task_queue.put(audio_file)
             
         except Exception as e:
-            logger.error(f"錄音過程出錯: {str(e)}")
-            time.sleep(1)  # 短暫等待後繼續
+            logger.error(f"Error during recording process: {str(e)}")
+            time.sleep(1)  # Brief wait before continuing
 
 def image_generation_worker(task_queue):
-    """圖片生成工作線程"""
+    """Image generation worker thread"""
     while True:
         try:
-            # 從隊列獲取任務
+            # Get task from queue
             audio_file = task_queue.get()
             if audio_file is None:
                 break
                 
-            # 處理音頻到圖片的轉換
+            # Process audio to image conversion
             results = process_audio_to_image(audio_file)
             
-            # 輸出結果摘要
-            logger.info("\n=== 處理完成 ===")
-            logger.info(f"音頻文件: {results['audio_file']}")
-            logger.info(f"轉錄文本: {results['transcription_file']}")
-            logger.info(f"提示詞文件: {results['prompt_file']}")
-            logger.info(f"生成圖片: {results['image_file']}")
+            # Output result summary
+            logger.info("\n=== Processing Complete ===")
+            logger.info(f"Audio file: {results['audio_file']}")
+            logger.info(f"Transcription text: {results['transcription_file']}")
+            logger.info(f"Prompt file: {results['prompt_file']}")
+            logger.info(f"Generated image: {results['image_file']}")
             
             task_queue.task_done()
             
         except Exception as e:
-            logger.error(f"圖片生成過程出錯: {str(e)}")
+            logger.error(f"Error during image generation process: {str(e)}")
             task_queue.task_done()
 
 def main():
-    """主程序入口"""
+    """Main program entry point"""
     try:
-        # 顯示所有音頻輸入設備
+        # Display all audio input devices
         list_audio_devices()
-        logger.info("=== 設備列表結束 ===\n")
+        logger.info("=== End of Device List ===\n")
         
-        # 設置目錄
+        # Set up directories
         setup_directories()
         
-        logger.info("程式已啟動，開始並行處理音頻到圖片的轉換...")
-        logger.info("按 Ctrl+C 可以停止程式")
+        logger.info("Program started, beginning parallel processing of audio to image conversion...")
+        logger.info("Press Ctrl+C to stop the program")
         
-        # 創建任務隊列
+        # Create task queue
         task_queue = Queue()
         
-        # 創建並啟動工作線程
+        # Create and start worker threads
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            # 啟動音頻錄製線程
+            # Start audio recording thread
             audio_future = executor.submit(audio_recording_worker, task_queue)
             
-            # 啟動圖片生成線程
+            # Start image generation thread
             image_future = executor.submit(image_generation_worker, task_queue)
             
             try:
-                # 等待線程完成
+                # Wait for threads to complete
                 audio_future.result()
                 image_future.result()
             except KeyboardInterrupt:
-                logger.info("\n使用者中斷程式執行")
-                # 清空隊列並添加結束標記
+                logger.info("\nUser interrupted program execution")
+                # Clear queue and add end marker
                 while not task_queue.empty():
                     task_queue.get()
                 task_queue.put(None)
                 return
             
     except Exception as e:
-        logger.error(f"程式執行失敗: {str(e)}")
-        logger.info("程式將在 5 秒後自動重啟...")
+        logger.error(f"Program execution failed: {str(e)}")
+        logger.info("Program will automatically restart in 5 seconds...")
         time.sleep(5)
-        main()  # 重新啟動主程式
+        main()  # Restart main program
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        logger.info("\n程式已完全停止")
+        logger.info("\nProgram completely stopped")
     except Exception as e:
-        logger.error(f"程式發生嚴重錯誤: {str(e)}")
-        logger.info("程式將在 5 秒後自動重啟...")
+        logger.error(f"Program encountered a serious error: {str(e)}")
+        logger.info("Program will automatically restart in 5 seconds...")
         time.sleep(5)
-        main()  # 重新啟動主程式 
+        main()  # Restart main program 
