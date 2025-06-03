@@ -53,8 +53,9 @@ PROMPT_TEMPLATE = """Based on the following TRPG game content, generate a prompt
 Requirements:
 0. Must in Japanese Horror Anime Style
 1. Must be in English only
-2. don't include any other text ,explanations and response 
-3. only return this exact format in English only and without title: 
+2. The image should not include any text
+3. don't include any other text ,explanations and response 
+4. only return this exact format in English only and without title: 
 Subject: The main focus of the image.
 Style: The artistic approach or visual aesthetic.
 Composition: How elements are arranged within the frame.
